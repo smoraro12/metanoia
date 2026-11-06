@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>VitaFlow | Finanzas & Fitness Offline</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VitaFlow">
+  <meta name="theme-color" content="#090d16">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            iosDark: '#090d16',
+            iosCard: 'rgba(21, 29, 44, 0.75)',
+            iosBorder: 'rgba(255, 255, 255, 0.08)',
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      background-color: #090d16;
+    }
+    .glass-card {
+      background: rgba(21, 29, 44, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 12px rgba(6, 182, 212, 0.3); }
+      50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.7); }
+    }
+    .timer-glow {
+      animation: pulseGlow 2s infinite;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-11/12 max-w-md pointer-events-none"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-30 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 px-4 py-3">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-emerald-400 flex items-center justify-center text-white font-black text-lg shadow-md shadow-cyan-500/20">
+          V
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+            VitaFlow <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 font-semibold"><i class="fa-solid fa-wifi-slash"></i> Offline</span>
+          </h1>
+          <p id="header-date" class="text-[11px] text-slate-400 font-medium">Cargando fecha...</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-1">
+        <button onclick="switchTab('exportar')" class="text-xs bg-slate-800/80 hover:bg-slate-700 text-cyan-400 border border-slate-700 px-2.5 py-1.5 rounded-xl font-medium transition flex items-center gap-1">
+          <i class="fa-solid fa-robot"></i> Reporte IA
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Scrollable Body Content -->
+  <main class="flex-1 max-w-md w-full mx-auto px-4 pt-4 pb-28">
+
+    <!-- TAB 1: FINANZAS (Balance, Gráficos y Movimientos) -->
+    <section id="tab-finanzas" class="tab-page space-y-4">
+      
+      <!-- Balance Summary Box -->
+      <div class="glass-card rounded-2xl p-4">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Balance General Neto</span>
+        <div id="display-net-balance" class="text-3xl font-black text-white tracking-tight">$0.00</div>
+        
+        <div class="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-800">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-arrow-down"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">Ingresos</span>
+              <span id="display-total-income" class="text-sm font-bold text-emerald-400">$0.00</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-arrow-up"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">Gastos</span>
+              <span id="display-total-expense" class="text-sm font-bold text-rose-400">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="openTxModal('gasto')" class="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-rose-500/20 active:scale-95 transition flex items-center justify-center gap-2 text-xs">
+          <i class="fa-solid fa-minus-circle"></i> Registrar Gasto
+        </button>
+        <button onclick="openTxModal('ingreso')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold py-3 px-4 rounded-xl active:scale-95 transition flex items-center justify-center gap-2 text-xs">
+          <i class="fa-solid fa-plus-circle"></i> Registrar Ingreso
+        </button>
+      </div>
+
+      <!-- RESTAURADO: Gráficos Interactivos (Chart.js) -->
+      <div class="grid grid-cols-1 gap-4">
+        <!-- Gráfico de Dona: Gastos por Categoría -->
+        <div class="glass-card rounded-2xl p-4 space-y-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-pie text-cyan-400"></i> Gastos por Categoría
+          </h3>
+          <div class="h-48 relative flex items-center justify-center">
+            <canvas id="chart-expenses-category"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico de Barras: Comparativo Ingresos vs Gastos -->
+        <div class="glass-card rounded-2xl p-4 space-y-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-column text-emerald-400"></i> Ingresos vs. Gastos
+          </h3>
+          <div class="h-44 relative">
+            <canvas id="chart-income-expense"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transactions List -->
+      <div class="glass-card rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-receipt text-cyan-400"></i> Historial Movimientos
+          </h3>
+          <select id="filter-tx-category" onchange="renderFinanzas()" class="bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded-lg px-2 py-1 focus:outline-none">
+            <option value="ALL">Todas las categorías</option>
+            <option value="Alimentación">Alimentación</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Vivienda">Vivienda</option>
+            <option value="Servicios">Servicios</option>
+            <option value="Ocio">Ocio</option>
+            <option value="Salud">Salud</option>
+            <option value="Ingresos">Ingresos</option>
+            <option value="Otros">Otros</option>
+          </select>
+        </div>
+
+        <div id="transactions-container" class="space-y-2 max-h-80 overflow-y-auto pr-1 hide-scrollbar">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- TAB 2: DEUDAS FAMILIARES & TARJETAS & AHORROS -->
+    <section id="tab-deudas-ahorros" class="tab-page hidden space-y-4">
+      
+      <!-- Summary KPIs -->
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="glass-card rounded-2xl p-3 border-l-4 border-l-amber-500">
+          <span class="text-[9px] text-slate-400 font-bold uppercase block">Deudas Familiares</span>
+          <span id="display-total-family-debt" class="text-base font-black text-amber-400">$0.00</span>
+        </div>
+        <div class="glass-card rounded-2xl p-3 border-l-4 border-l-rose-500">
+          <span class="text-[9px] text-slate-400 font-bold uppercase block">Tarjetas de Crédito</span>
+          <span id="display-total-debt" class="text-base font-black text-rose-400">$0.00</span>
+        </div>
+      </div>
+
+      <!-- NUEVO MÓDULO: Deudas Familiares con Cálculo de Intereses -->
+      <div class="glass-card rounded-2xl p-4 border border-amber-500/30">
+        <div class="flex justify-between items-center mb-3">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-users-rays"></i> Deudas Familiares (con Intereses)
+            </h3>
+            <p class="text-[10px] text-slate-400">Seguimiento de préstamos familiares e intereses acumulados</p>
+          </div>
+          <button onclick="openFamilyDebtModal()" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg font-bold hover:bg-amber-500/30 transition">
+            + Familiar
+          </button>
+        </div>
+
+        <div id="family-debts-container" class="space-y-3">
+          <!-- Dynamic cards populated here -->
+        </div>
+      </div>
+
+      <!-- Tarjetas de Crédito Personales -->
+      <div class="glass-card rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-3">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-credit-card"></i> Tarjetas de Crédito
+            </h3>
+            <p class="text-[10px] text-slate-400">Saldos personales y pagos mínimos</p>
+          </div>
+          <button onclick="openDebtModal()" class="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-lg font-bold hover:bg-rose-500/30 transition">
+            + Tarjeta
+          </button>
+        </div>
+
+        <div id="debts-container" class="space-y-2.5">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Fondos de Ahorro -->
+      <div class="glass-card rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-3">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-piggy-bank"></i> Fondos de Ahorro
+            </h3>
+            <p class="text-[10px] text-slate-400">Metas y acumulado personal</p>
+          </div>
+          <button onclick="openSavingModal()" class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-500/30 transition">
+            + Ahorro
+          </button>
+        </div>
+
+        <div id="savings-container" class="space-y-2.5">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- TAB 3: EJERCICIO (Rutinas, Ejercicios Editables y Gráficos) -->
+    <section id="tab-ejercicio" class="tab-page hidden space-y-4">
+      
+      <!-- Rest Timer Card -->
+      <div id="timer-card-wrapper" class="glass-card rounded-2xl p-4 border border-cyan-500/30 relative">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
+            <i class="fa-solid fa-stopwatch"></i> Cronómetro de Descanso
+          </span>
+          <span id="timer-status" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">Listo</span>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div id="timer-display" class="text-3xl font-mono font-black text-white tracking-widest">01:00</div>
+          
+          <div class="flex gap-1">
+            <button onclick="setTimerPreset(30)" class="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700">30s</button>
+            <button onclick="setTimerPreset(60)" class="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700">60s</button>
+            <button onclick="setTimerPreset(90)" class="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700">90s</button>
+          </div>
+        </div>
+
+        <div class="flex gap-2 mt-3">
+          <button id="btn-timer-toggle" onclick="toggleTimer()" class="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-1">
+            <i class="fa-solid fa-play" id="timer-icon"></i> <span id="timer-btn-text">Iniciar</span>
+          </button>
+          <button onclick="resetTimer()" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs border border-slate-700">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-2">
+        <button onclick="openWorkoutModal()" class="flex-1 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-500/20 active:scale-95 transition text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-dumbbell"></i> Registrar Entreno
+        </button>
+        <button onclick="openExerciseModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-3 py-3 rounded-xl transition text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-plus text-cyan-400"></i> Ejercicio
+        </button>
+      </div>
+
+      <!-- RESTAURADO: Gráfico de Progreso de Cargas en Ejercicio -->
+      <div class="glass-card rounded-2xl p-4 space-y-3">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-line"></i> Evolución de Carga / Peso
+          </h3>
+          <select id="select-chart-exercise" onchange="renderExerciseChart()" class="bg-slate-900 border border-slate-700 text-[10px] text-cyan-400 font-bold rounded-lg px-2 py-1 focus:outline-none">
+            <!-- Options populated dynamically -->
+          </select>
+        </div>
+        <div class="h-44 relative">
+          <canvas id="chart-exercise-progression"></canvas>
+        </div>
+      </div>
+
+      <!-- Lista de Ejercicios Disponibles -->
+      <div class="glass-card rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-list-check text-cyan-400"></i> Mis Ejercicios
+          </h3>
+          <span id="exercise-count-badge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">4 ejercicios</span>
+        </div>
+
+        <div id="exercise-catalog-container" class="grid grid-cols-2 gap-2">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Historial de Entrenamientos -->
+      <div class="glass-card rounded-2xl p-4">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-1.5">
+          <i class="fa-solid fa-calendar-check text-indigo-400"></i> Historial de Rutinas
+        </h3>
+
+        <div id="workout-history-container" class="space-y-3 max-h-80 overflow-y-auto hide-scrollbar">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- TAB 4: EXPORTAR PARA IA Y AJUSTES -->
+    <section id="tab-exportar" class="tab-page hidden space-y-4">
+      
+      <!-- AI Monthly Report Card -->
+      <div class="glass-card rounded-2xl p-4 border border-cyan-500/30 space-y-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Informe Financiero Ampliado para IA</h3>
+            <p class="text-[10px] text-slate-400">Incluye Deudas Familiares con Intereses + Fitness</p>
+          </div>
+        </div>
+
+        <button onclick="generateAIReport()" class="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-600 hover:to-emerald-600 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg shadow-cyan-500/20 transition active:scale-95 text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Generar Informe para IA
+        </button>
+
+        <div id="ai-report-output-box" class="hidden space-y-2 pt-2">
+          <textarea id="ai-report-textarea" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] font-mono text-slate-300 h-64 focus:outline-none resize-none leading-relaxed"></textarea>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="copyAIReportToClipboard()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-copy"></i> Copiar Texto
+            </button>
+            <button onclick="downloadAIReportFile()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-download"></i> Descargar .txt
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuración & Copia de Seguridad -->
+      <div class="glass-card rounded-2xl p-4 space-y-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-database text-indigo-400"></i> Base de Datos Local
+        </h3>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="exportJSONBackup()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-file-export text-cyan-400"></i> Copia JSON
+          </button>
+          
+          <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-file-import text-emerald-400"></i> Importar
+            <input type="file" id="import-json-file" onchange="importJSONBackup(event)" accept=".json" class="hidden">
+          </label>
+        </div>
+
+        <button onclick="confirmResetAll()" class="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold py-2.5 px-3 rounded-xl text-xs transition">
+          <i class="fa-solid fa-trash-can mr-1"></i> Borrar Todos los Datos
+        </button>
+      </div>
+
+      <!-- PWA iPhone Instructions -->
+      <div class="glass-card rounded-2xl p-4 bg-gradient-to-br from-slate-900 to-slate-950 space-y-2 border border-slate-800">
+        <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fa-brands fa-apple text-cyan-400"></i> Guardar en iPhone como App
+        </h4>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Para usarla sin conexión en tu iPhone: Abre esta página en <strong>Safari</strong>, pulsa el botón <strong>Compartir</strong> <i class="fa-solid fa-arrow-up-from-bracket text-cyan-400"></i> y elige <strong>"Agregar a inicio"</strong>.
+        </p>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- IOS BOTTOM NAVIGATION BAR -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-4 py-2">
+    <div class="max-w-md mx-auto flex justify-around items-center">
+      
+      <button onclick="switchTab('finanzas')" id="nav-finanzas" class="nav-btn flex flex-col items-center gap-1 text-cyan-400 transition">
+        <i class="fa-solid fa-wallet text-base"></i>
+        <span class="text-[10px] font-bold">Finanzas</span>
+      </button>
+
+      <button onclick="switchTab('deudas-ahorros')" id="nav-deudas-ahorros" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <i class="fa-solid fa-users-rays text-base"></i>
+        <span class="text-[10px] font-medium">Deudas & Ahorro</span>
+      </button>
+
+      <button onclick="switchTab('ejercicio')" id="nav-ejercicio" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <i class="fa-solid fa-dumbbell text-base"></i>
+        <span class="text-[10px] font-medium">Ejercicio</span>
+      </button>
+
+      <button onclick="switchTab('exportar')" id="nav-exportar" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <i class="fa-solid fa-robot text-base"></i>
+        <span class="text-[10px] font-medium">Informe IA</span>
+      </button>
+
+    </div>
+  </nav>
+
+
+  <!-- MODALS SYSTEM -->
+
+  <!-- Modal 1: Transacción (Ingreso/Gasto) -->
+  <div id="modal-tx" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="glass-card w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 border border-slate-800 space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 id="modal-tx-title" class="text-sm font-bold text-white">Nuevo Movimiento</h3>
+        <button onclick="closeModal('modal-tx')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="form-tx" onsubmit="handleSaveTx(event)" class="space-y-3">
+        <input type="hidden" id="tx-type-val" value="gasto">
+        
+        <div class="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button type="button" id="btn-type-gasto" onclick="setTxType('gasto')" class="py-2 text-xs font-bold rounded-lg transition bg-rose-500 text-white">Gasto</button>
+          <button type="button" id="btn-type-ingreso" onclick="setTxType('ingreso')" class="py-2 text-xs font-bold rounded-lg transition text-slate-400">Ingreso</button>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Monto ($)</label>
+          <input type="number" step="0.01" id="tx-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-base font-bold text-white focus:outline-none focus:border-cyan-500">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Categoría</label>
+          <select id="tx-category" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+            <option value="Alimentación">Alimentación</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Vivienda">Vivienda</option>
+            <option value="Servicios">Servicios</option>
+            <option value="Ocio">Ocio</option>
+            <option value="Salud">Salud</option>
+            <option value="Ingresos">Ingresos</option>
+            <option value="Otros">Otros</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Fecha</label>
+          <input type="date" id="tx-date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Nota / Detalle</label>
+          <input type="text" id="tx-note" placeholder="ej. Almuerzo o Supermercado" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('modal-tx')" class="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal 2: Nueva Deuda Familiar con Cálculo de Interés -->
+  <div id="modal-family-debt" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="glass-card w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 border border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-users-rays"></i> Registrar Deuda Familiar</h3>
+        <button onclick="closeModal('modal-family-debt')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="form-family-debt" onsubmit="handleSaveFamilyDebt(event)" class="space-y-3">
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Nombre del Familiar / Titular</label>
+          <input type="text" id="fd-name" required placeholder="ej. Tío Carlos, Mamá, Próximo Pago Hnos" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Monto Inicial ($)</label>
+            <input type="number" step="0.01" id="fd-principal" required placeholder="1000.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Tasa Interés (%)</label>
+            <input type="number" step="0.01" id="fd-rate" required placeholder="2.5" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Periodo Tasa</label>
+            <select id="fd-rate-period" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+              <option value="mensual">Mensual (%)</option>
+              <option value="anual">Anual (%)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Tipo de Interés</label>
+            <select id="fd-interest-type" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+              <option value="simple">Simple</option>
+              <option value="compuesto">Compuesto</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Fecha de Inicio de Deuda</label>
+          <input type="date" id="fd-start-date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Notas / Motivo del Apoyo</label>
+          <input type="text" id="fd-notes" placeholder="ej. Ayuda para salud, préstamo personal" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('modal-family-debt')" class="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold">Guardar Deuda</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal 3: Registrar Abono a Deuda Familiar -->
+  <div id="modal-fd-abono" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="glass-card w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 border border-slate-800 space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 id="fd-abono-title" class="text-sm font-bold text-emerald-400">Registrar Abono a Deuda</h3>
+        <button onclick="closeModal('modal-fd-abono')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="form-fd-abono" onsubmit="handleSaveFamilyAbono(event)" class="space-y-3">
+        <input type="hidden" id="fd-abono-debt-id">
+        
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Monto del Abono / Pago ($)</label>
+          <input type="number" step="0.01" id="fd-abono-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-base font-bold text-emerald-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Fecha del Abono</label>
+          <input type="date" id="fd-abono-date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Nota / Detalle del Pago</label>
+          <input type="text" id="fd-abono-note" placeholder="ej. Transferencia parcial mensual" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('modal-fd-abono')" class="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold">Guardar Abono</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal 4: Tarjeta / Deuda Personal -->
+  <div id="modal-debt" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="glass-card w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 border border-slate-800 space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white">Tarjeta de Crédito / Deuda</h3>
+        <button onclick="closeModal('modal-debt')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="form-debt" onsubmit="handleSaveDebt(event)" class="space-y-3">
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Nombre de Tarjeta / Entidad</label>
+          <input type="text" id="debt-name" required placeholder="ej. Tarjeta Visa Master" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Deuda Actual ($)</label>
+          <input type="number" step="0.01" id="debt-balance" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Pago Mínimo ($)</label>
+            <input type="number" step="0.01" id="debt-min-pay" placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Fecha Límite Pago</label>
+            <input type="text" id="debt-due-date" placeholder="ej. 15 de c/mes" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('modal-debt')" class="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl text-xs font-bold">Guardar Deuda</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal 5: Fondo de Ahorro -->
+  <div id="modal-saving" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="glass-card w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 border border-slate-800 space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white">Fondo de Ahorro</h3>
+        <button onclick="closeModal('modal-saving')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="form-saving" onsubmit="handleSaveSaving(event)" class="space-y-3">
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Nombre del Ahorro</label>
+          <input type="text" id="saving-name" required placeholder="ej. Fondo de Emergencia / Viaje" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Saldo Actual ($)</label>
+            <input type="number" step="0.01" id="saving-balance" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Meta de Ahorro ($)</label>
+            <input type="number" step="0.01" id="saving-goal" placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('modal-saving')" class="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold">Guardar Ahorro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal 6: Crear Nuevo Ejercicio -->
+  <div id="modal-exercise" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="glass-card w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 border border-slate-800 space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white">Nuevo Ejercicio Personalizado</h3>
+        <button onclick="closeModal('modal-exercise')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="form-exercise" onsubmit="handleSaveExercise(event)" class="space-y-3">
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Nombre del Ejercicio</label>
+          <input type="text" id="ex-name" required placeholder="ej. Curl de Bíceps con Barra" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Grupo Muscular / Categoría</label>
+          <select id="ex-category" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+            <option value="Pecho">Pecho</option>
+            <option value="Espalda">Espalda</option>
+            <option value="Piernas">Piernas</option>
+            <option value="Brazos">Brazos / Hombros</option>
+            <option value="Calistenia">Calistenia / Peso Corporal</option>
+            <option value="Core">Core / Abdomen</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('modal-exercise')" class="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold">Crear Ejercicio</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal 7: Registrar Entrenamiento -->
+  <div id="modal-workout" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="glass-card w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 border border-slate-800 space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white">Registrar Entrenamiento</h3>
+        <button onclick="closeModal('modal-workout')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="form-workout" onsubmit="handleSaveWorkout(event)" class="space-y-3">
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Título / Nombre de la Sesión</label>
+          <input type="text" id="wk-title" required placeholder="ej. Rutina Torso o Piernas" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Fecha</label>
+          <input type="date" id="wk-date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+        </div>
+
+        <!-- Dynamic Exercise Builder -->
+        <div class="pt-2 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">Ejercicios & Series</span>
+            <button type="button" onclick="addWorkoutExerciseRow()" class="text-[11px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-lg font-bold">
+              + Ejercicio
+            </button>
+          </div>
+
+          <div id="workout-exercise-rows" class="space-y-3">
+            <!-- Dynamic rows -->
+          </div>
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('modal-workout')" class="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="flex-1 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white py-2.5 rounded-xl text-xs font-bold">Guardar Entreno</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- JAVASCRIPT ENGINE (OFFLINE LOCALSTORAGE & CHART.JS ENGINE) -->
+  <script>
+    /* ==========================================
+       STORAGE & APP STATE
+       ========================================== */
+    const DB_KEY = 'vitaflow_offline_db_v3';
+
+    let appState = {
+      transactions: [],
+      debts: [],
+      familyDebts: [],
+      savings: [],
+      exercises: [],
+      workouts: []
+    };
+
+    // Chart instances
+    let chartExpensesCategory = null;
+    let chartIncomeExpense = null;
+    let chartExerciseProgression = null;
+
+    // Timer Variables
+    let timerSeconds = 60;
+    let timerTotal = 60;
+    let timerInterval = null;
+    let timerRunning = false;
+
+    /* Initial Load */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDB();
+      setupDates();
+      renderAll();
+    });
+
+    function setupDates() {
+      const now = new Date();
+      const options = { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' };
+      document.getElementById('header-date').textContent = now.toLocaleDateString('es-ES', options);
+
+      const todayISO = now.toISOString().split('T')[0];
+      document.getElementById('tx-date').value = todayISO;
+      document.getElementById('wk-date').value = todayISO;
+      if (document.getElementById('fd-start-date')) {
+        document.getElementById('fd-start-date').value = todayISO;
+      }
+      if (document.getElementById('fd-abono-date')) {
+        document.getElementById('fd-abono-date').value = todayISO;
+      }
+    }
+
+    function loadDB() {
+      const saved = localStorage.getItem(DB_KEY);
+      if (saved) {
+        try {
+          appState = JSON.parse(saved);
+        } catch(e) {
+          console.error("Error parsing DB", e);
+        }
+      }
+
+      // Pre-load default 4 exercises if none exist
+      if (!appState.exercises || appState.exercises.length === 0) {
+        appState.exercises = [
+          { id: 'ex_1', name: 'Dominadas', category: 'Calistenia' },
+          { id: 'ex_2', name: 'Press de Pecho', category: 'Pecho' },
+          { id: 'ex_3', name: 'Fondos', category: 'Calistenia' },
+          { id: 'ex_4', name: 'Sentadillas', category: 'Piernas' }
+        ];
+        saveDB();
+      }
+
+      if (!appState.transactions) appState.transactions = [];
+      if (!appState.debts) appState.debts = [];
+      if (!appState.familyDebts) appState.familyDebts = [];
+      if (!appState.savings) appState.savings = [];
+      if (!appState.workouts) appState.workouts = [];
+    }
+
+    function saveDB() {
+      localStorage.setItem(DB_KEY, JSON.stringify(appState));
+    }
+
+    /* Navigation */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-page').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('text-cyan-400');
+        btn.classList.add('text-slate-400');
+      });
+
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.classList.remove('text-slate-400');
+        activeNav.classList.add('text-cyan-400');
+      }
+
+      if (tabId === 'finanzas') renderFinanzas();
+      if (tabId === 'deudas-ahorros') renderDeudasAhorros();
+      if (tabId === 'ejercicio') renderEjercicio();
+    }
+
+
+    /* ==========================================
+       SECTION 1: FINANZAS Y GRÁFICOS
+       ========================================== */
+    function renderFinanzas() {
+      let income = 0;
+      let expense = 0;
+      const categoryTotals = {};
+
+      appState.transactions.forEach(t => {
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === 'ingreso') {
+          income += amt;
+        } else {
+          expense += amt;
+          categoryTotals[t.category] = (categoryTotals[t.category] || 0) + amt;
+        }
+      });
+
+      const net = income - expense;
+
+      document.getElementById('display-net-balance').textContent = `$${net.toLocaleString('es-ES', {minimumFractionDigits:2})}`;
+      document.getElementById('display-total-income').textContent = `$${income.toLocaleString('es-ES', {minimumFractionDigits:2})}`;
+      document.getElementById('display-total-expense').textContent = `$${expense.toLocaleString('es-ES', {minimumFractionDigits:2})}`;
+
+      // Render Charts
+      renderFinanceCharts(income, expense, categoryTotals);
+
+      // List Transacciones
+      const container = document.getElementById('transactions-container');
+      const filter = document.getElementById('filter-tx-category').value;
+
+      let list = [...appState.transactions];
+      if (filter !== 'ALL') {
+        list = list.filter(t => t.category === filter || (filter === 'Ingresos' && t.type === 'ingreso'));
+      }
+
+      list.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs">No hay movimientos registrados.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(t => {
+        const isExp = t.type === 'gasto';
+        const sign = isExp ? '-' : '+';
+        const color = isExp ? 'text-slate-200' : 'text-emerald-400';
+        const badgeBg = isExp ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400';
+
+        return `
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${badgeBg}">
+                <i class="fa-solid ${isExp ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-white">${t.note || t.category}</h4>
+                <p class="text-[10px] text-slate-400">${t.category} • ${t.date}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold ${color}">${sign}$${parseFloat(t.amount).toFixed(2)}</span>
+              <button onclick="deleteTx('${t.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderFinanceCharts(income, expense, categoryTotals) {
+      // 1. Doughnut Chart: Expenses by Category
+      const ctxCat = document.getElementById('chart-expenses-category').getContext('2d');
+      const catLabels = Object.keys(categoryTotals);
+      const catData = Object.values(categoryTotals);
+
+      if (chartExpensesCategory) chartExpensesCategory.destroy();
+
+      if (catData.length === 0) {
+        chartExpensesCategory = new Chart(ctxCat, {
+          type: 'doughnut',
+          data: {
+            labels: ['Sin gastos'],
+            datasets: [{ data: [1], backgroundColor: ['#334155'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+      } else {
+        chartExpensesCategory = new Chart(ctxCat, {
+          type: 'doughnut',
+          data: {
+            labels: catLabels,
+            datasets: [{
+              data: catData,
+              backgroundColor: ['#f43f5e', '#06b6d4', '#10b981', '#6366f1', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'],
+              borderWidth: 2,
+              borderColor: '#090d16'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 } } }
+            }
+          }
+        });
+      }
+
+      // 2. Bar Chart: Income vs Expense
+      const ctxBar = document.getElementById('chart-income-expense').getContext('2d');
+      if (chartIncomeExpense) chartIncomeExpense.destroy();
+
+      chartIncomeExpense = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: ['Ingresos', 'Gastos'],
+          datasets: [{
+            label: 'Monto ($)',
+            data: [income, expense],
+            backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(244, 63, 94, 0.8)'],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          }
+        }
+      });
+    }
+
+    function openTxModal(type) {
+      document.getElementById('form-tx').reset();
+      setupDates();
+      setTxType(type);
+      openModal('modal-tx');
+    }
+
+    function setTxType(type) {
+      document.getElementById('tx-type-val').value = type;
+      const bGasto = document.getElementById('btn-type-gasto');
+      const bIngreso = document.getElementById('btn-type-ingreso');
+
+      if (type === 'gasto') {
+        bGasto.className = 'py-2 text-xs font-bold rounded-lg transition bg-rose-500 text-white';
+        bIngreso.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400';
+      } else {
+        bIngreso.className = 'py-2 text-xs font-bold rounded-lg transition bg-emerald-500 text-white';
+        bGasto.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400';
+      }
+    }
+
+    function handleSaveTx(e) {
+      e.preventDefault();
+      const type = document.getElementById('tx-type-val').value;
+      const amount = parseFloat(document.getElementById('tx-amount').value);
+      const category = document.getElementById('tx-category').value;
+      const date = document.getElementById('tx-date').value;
+      const note = document.getElementById('tx-note').value.trim();
+
+      if (!amount || amount <= 0) return;
+
+      appState.transactions.push({
+        id: 'tx_' + Date.now(),
+        type,
+        amount,
+        category,
+        date,
+        note: note || category
+      });
+
+      saveDB();
+      closeModal('modal-tx');
+      renderFinanzas();
+      showToast('Movimiento registrado', 'success');
+    }
+
+    function deleteTx(id) {
+      appState.transactions = appState.transactions.filter(t => t.id !== id);
+      saveDB();
+      renderFinanzas();
+      showToast('Movimiento eliminado', 'info');
+    }
+
+
+    /* ==========================================
+       SECTION 2: DEUDAS FAMILIARES CON INTERESES & TARJETAS & AHORRO
+       ========================================== */
+
+    /**
+     * Calcula los intereses acumulados de una deuda familiar
+     */
+    function calculateFamilyDebt(fd) {
+      const principal = parseFloat(fd.principal) || 0;
+      const rate = parseFloat(fd.rate) || 0; // % rate
+      const isAnnual = fd.ratePeriod === 'anual';
+      const isCompound = fd.interestType === 'compuesto';
+
+      const startDate = new Date(fd.startDate);
+      const today = new Date();
+      
+      // Calculate elapsed time
+      const diffMs = today - startDate;
+      const diffDays = Math.max(0, diffMs / (1000 * 60 * 60 * 24));
+      
+      let interestAccrued = 0;
+
+      if (isAnnual) {
+        const years = diffDays / 365.25;
+        const r = rate / 100;
+        if (isCompound) {
+          interestAccrued = principal * (Math.pow(1 + r, years) - 1);
+        } else {
+          interestAccrued = principal * r * years;
+        }
+      } else {
+        // Monthly
+        const months = diffDays / 30.4375;
+        const r = rate / 100;
+        if (isCompound) {
+          interestAccrued = principal * (Math.pow(1 + r, months) - 1);
+        } else {
+          interestAccrued = principal * r * months;
+        }
+      }
+
+      // Total payments (abonos)
+      const abonos = fd.abonos || [];
+      const totalAbonos = abonos.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+
+      const currentTotal = Math.max(0, principal + interestAccrued - totalAbonos);
+
+      // 6-month projection without abonos
+      let proj6M = 0;
+      const r = rate / 100;
+      if (isAnnual) {
+        const projYears = (diffDays / 365.25) + 0.5;
+        proj6M = isCompound ? principal * Math.pow(1 + r, projYears) : principal * (1 + r * projYears);
+      } else {
+        const projMonths = (diffDays / 30.4375) + 6;
+        proj6M = isCompound ? principal * Math.pow(1 + r, projMonths) : principal * (1 + r * projMonths);
+      }
+      proj6M = Math.max(0, proj6M - totalAbonos);
+
+      return {
+        principal,
+        interestAccrued: Math.max(0, interestAccrued),
+        totalAbonos,
+        currentTotal,
+        proj6M,
+        daysElapsed: Math.floor(diffDays)
+      };
+    }
+
+    function renderDeudasAhorros() {
+      let totalFamilyDebt = 0;
+      let totalCardDebt = 0;
+      let totalSaved = 0;
+
+      // 1. Render Family Debts
+      const famContainer = document.getElementById('family-debts-container');
+      if (!appState.familyDebts || appState.familyDebts.length === 0) {
+        famContainer.innerHTML = `<p class="text-xs text-slate-500 py-3 text-center">No hay deudas familiares registradas.</p>`;
+      } else {
+        famContainer.innerHTML = appState.familyDebts.map(fd => {
+          const calc = calculateFamilyDebt(fd);
+          totalFamilyDebt += calc.currentTotal;
+
+          const abonosList = (fd.abonos || []).map(a => `
+            <div class="flex justify-between text-[10px] text-emerald-400 font-medium">
+              <span>Abono (${a.date}): ${a.note || ''}</span>
+              <span>-$${parseFloat(a.amount).toFixed(2)}</span>
+            </div>
+          `).join('');
+
+          return `
+            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h4 class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user text-amber-400"></i> ${fd.name}
+                  </h4>
+                  <p class="text-[10px] text-slate-400">${fd.notes || 'Deuda Familiar'} • Tasa ${fd.rate}% ${fd.ratePeriod} (${fd.interestType})</p>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-black text-amber-400 block">$${calc.currentTotal.toLocaleString('es-ES', {minimumFractionDigits:2})}</span>
+                  <span class="text-[9px] text-slate-500 font-semibold">${calc.daysElapsed} días transcurridos</span>
+                </div>
+              </div>
+
+              <!-- Interest & Principal breakdown -->
+              <div class="grid grid-cols-3 gap-1 bg-slate-950/70 p-2 rounded-lg text-center text-[10px]">
+                <div>
+                  <span class="text-slate-400 block">Principal</span>
+                  <span class="font-bold text-white">$${calc.principal.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Interés Acum.</span>
+                  <span class="font-bold text-rose-400">+$${calc.interestAccrued.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Total Abonos</span>
+                  <span class="font-bold text-emerald-400">-$${calc.totalAbonos.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <!-- Projection alert -->
+              <div class="text-[10px] text-slate-400 flex justify-between items-center bg-slate-950/40 px-2 py-1 rounded">
+                <span><i class="fa-solid fa-arrow-trend-up text-rose-400"></i> Proyección 6 meses:</span>
+                <strong class="text-rose-400">$${calc.proj6M.toFixed(2)}</strong>
+              </div>
+
+              ${abonosList ? `<div class="space-y-0.5 pt-1 border-t border-slate-800/60">${abonosList}</div>` : ''}
+
+              <!-- Actions -->
+              <div class="flex justify-between items-center pt-2 border-t border-slate-800/80">
+                <button onclick="openFamilyAbonoModal('${fd.id}')" class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-500/30 transition flex items-center gap-1">
+                  <i class="fa-solid fa-plus-circle text-emerald-400"></i> Registrar Abono
+                </button>
+                <button onclick="deleteFamilyDebt('${fd.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 2. Personal Credit Cards
+      const debtsBox = document.getElementById('debts-container');
+      if (appState.debts.length === 0) {
+        debtsBox.innerHTML = `<p class="text-xs text-slate-500 py-2 text-center">No hay tarjetas de crédito registradas.</p>`;
+      } else {
+        debtsBox.innerHTML = appState.debts.map(d => {
+          totalCardDebt += parseFloat(d.balance) || 0;
+          return `
+            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+              <div class="flex justify-between items-center">
+                <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-credit-card text-rose-400"></i> ${d.name}
+                </h4>
+                <div class="flex items-center gap-1">
+                  <span class="text-xs font-black text-rose-400">$${parseFloat(d.balance).toLocaleString('es-ES', {minimumFractionDigits:2})}</span>
+                  <button onclick="deleteDebt('${d.id}')" class="text-slate-500 hover:text-rose-400 text-xs ml-1"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
+                <span>Pago mínimo: <strong class="text-slate-200">$${parseFloat(d.minPay || 0).toFixed(2)}</strong></span>
+                <span>Límite pago: <strong class="text-slate-200">${d.dueDate || 'N/A'}</strong></span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Savings Funds
+      const savingsBox = document.getElementById('savings-container');
+      if (appState.savings.length === 0) {
+        savingsBox.innerHTML = `<p class="text-xs text-slate-500 py-2 text-center">No hay fondos de ahorro creados.</p>`;
+      } else {
+        savingsBox.innerHTML = appState.savings.map(s => {
+          totalSaved += parseFloat(s.balance) || 0;
+          const goal = parseFloat(s.goal) || 0;
+          const pct = goal > 0 ? Math.min(Math.round((s.balance / goal) * 100), 100) : 100;
+
+          return `
+            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+              <div class="flex justify-between items-center">
+                <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-piggy-bank text-emerald-400"></i> ${s.name}
+                </h4>
+                <div class="flex items-center gap-1">
+                  <span class="text-xs font-black text-emerald-400">$${parseFloat(s.balance).toLocaleString('es-ES', {minimumFractionDigits:2})}</span>
+                  <button onclick="deleteSaving('${s.id}')" class="text-slate-500 hover:text-rose-400 text-xs ml-1"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+              </div>
+              ${goal > 0 ? `
+                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div class="bg-emerald-400 h-full rounded-full" style="width: ${pct}%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-400">
+                  <span>Meta: $${goal.toLocaleString()}</span>
+                  <span>${pct}% alcanzado</span>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('display-total-family-debt').textContent = `$${totalFamilyDebt.toLocaleString('es-ES', {minimumFractionDigits:2})}`;
+      document.getElementById('display-total-debt').textContent = `$${totalCardDebt.toLocaleString('es-ES', {minimumFractionDigits:2})}`;
+    }
+
+    // Family Debt Actions
+    function openFamilyDebtModal() {
+      document.getElementById('form-family-debt').reset();
+      setupDates();
+      openModal('modal-family-debt');
+    }
+
+    function handleSaveFamilyDebt(e) {
+      e.preventDefault();
+      const name = document.getElementById('fd-name').value.trim();
+      const principal = parseFloat(document.getElementById('fd-principal').value) || 0;
+      const rate = parseFloat(document.getElementById('fd-rate').value) || 0;
+      const ratePeriod = document.getElementById('fd-rate-period').value;
+      const interestType = document.getElementById('fd-interest-type').value;
+      const startDate = document.getElementById('fd-start-date').value;
+      const notes = document.getElementById('fd-notes').value.trim();
+
+      if (!name || principal <= 0) return;
+
+      appState.familyDebts.push({
+        id: 'fd_' + Date.now(),
+        name,
+        principal,
+        rate,
+        ratePeriod,
+        interestType,
+        startDate,
+        notes,
+        abonos: []
+      });
+
+      saveDB();
+      closeModal('modal-family-debt');
+      renderDeudasAhorros();
+      showToast('Deuda familiar registrada', 'success');
+    }
+
+    function openFamilyAbonoModal(debtId) {
+      const debt = appState.familyDebts.find(d => d.id === debtId);
+      if (!debt) return;
+
+      document.getElementById('form-fd-abono').reset();
+      setupDates();
+      document.getElementById('fd-abono-debt-id').value = debtId;
+      document.getElementById('fd-abono-title').textContent = `Abono a ${debt.name}`;
+      openModal('modal-fd-abono');
+    }
+
+    function handleSaveFamilyAbono(e) {
+      e.preventDefault();
+      const debtId = document.getElementById('fd-abono-debt-id').value;
+      const amount = parseFloat(document.getElementById('fd-abono-amount').value) || 0;
+      const date = document.getElementById('fd-abono-date').value;
+      const note = document.getElementById('fd-abono-note').value.trim();
+
+      if (amount <= 0) return;
+
+      const debt = appState.familyDebts.find(d => d.id === debtId);
+      if (debt) {
+        if (!debt.abonos) debt.abonos = [];
+        debt.abonos.push({ id: 'ab_' + Date.now(), amount, date, note });
+        saveDB();
+        renderDeudasAhorros();
+        showToast('Abono registrado con éxito', 'success');
+      }
+      closeModal('modal-fd-abono');
+    }
+
+    function deleteFamilyDebt(id) {
+      appState.familyDebts = appState.familyDebts.filter(d => d.id !== id);
+      saveDB();
+      renderDeudasAhorros();
+      showToast('Deuda familiar eliminada', 'info');
+    }
+
+    // Card & Saving modals
+    function openDebtModal() {
+      document.getElementById('form-debt').reset();
+      openModal('modal-debt');
+    }
+
+    function handleSaveDebt(e) {
+      e.preventDefault();
+      const name = document.getElementById('debt-name').value.trim();
+      const balance = parseFloat(document.getElementById('debt-balance').value) || 0;
+      const minPay = parseFloat(document.getElementById('debt-min-pay').value) || 0;
+      const dueDate = document.getElementById('debt-due-date').value.trim();
+
+      appState.debts.push({ id: 'd_' + Date.now(), name, balance, minPay, dueDate });
+      saveDB();
+      closeModal('modal-debt');
+      renderDeudasAhorros();
+      showToast('Tarjeta / Deuda registrada', 'success');
+    }
+
+    function deleteDebt(id) {
+      appState.debts = appState.debts.filter(d => d.id !== id);
+      saveDB();
+      renderDeudasAhorros();
+      showToast('Deuda eliminada', 'info');
+    }
+
+    function openSavingModal() {
+      document.getElementById('form-saving').reset();
+      openModal('modal-saving');
+    }
+
+    function handleSaveSaving(e) {
+      e.preventDefault();
+      const name = document.getElementById('saving-name').value.trim();
+      const balance = parseFloat(document.getElementById('saving-balance').value) || 0;
+      const goal = parseFloat(document.getElementById('saving-goal').value) || 0;
+
+      appState.savings.push({ id: 's_' + Date.now(), name, balance, goal });
+      saveDB();
+      closeModal('modal-saving');
+      renderDeudasAhorros();
+      showToast('Fondo de ahorro registrado', 'success');
+    }
+
+    function deleteSaving(id) {
+      appState.savings = appState.savings.filter(s => s.id !== id);
+      saveDB();
+      renderDeudasAhorros();
+      showToast('Ahorro eliminado', 'info');
+    }
+
+
+    /* ==========================================
+       SECTION 3: EJERCICIO & GRÁFICO DE CARGAS
+       ========================================== */
+    function renderEjercicio() {
+      // Badges exercises count
+      document.getElementById('exercise-count-badge').textContent = `${appState.exercises.length} ejercicios`;
+
+      // Select for progression chart
+      const selectChartEx = document.getElementById('select-chart-exercise');
+      selectChartEx.innerHTML = appState.exercises.map(ex => `<option value="${ex.name}">${ex.name}</option>`).join('');
+
+      renderExerciseChart();
+
+      // Catalog grid
+      const catalog = document.getElementById('exercise-catalog-container');
+      catalog.innerHTML = appState.exercises.map(ex => `
+        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex justify-between items-center">
+          <div>
+            <h4 class="text-xs font-bold text-white">${ex.name}</h4>
+            <p class="text-[9px] text-cyan-400 font-semibold">${ex.category}</p>
+          </div>
+          <button onclick="deleteExercise('${ex.id}')" class="text-slate-600 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+      `).join('');
+
+      // Workout history
+      const history = document.getElementById('workout-history-container');
+      if (appState.workouts.length === 0) {
+        history.innerHTML = `<p class="text-xs text-slate-500 py-3 text-center">No has registrado entrenamientos aún.</p>`;
+        return;
+      }
+
+      const sortedWorkouts = [...appState.workouts].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+      history.innerHTML = sortedWorkouts.map(w => {
+        const details = (w.items || []).map(item => `
+          <div class="text-[10px] text-slate-300 flex justify-between pt-1 border-t border-slate-800/40">
+            <span class="font-medium">• ${item.exerciseName}</span>
+            <span class="text-cyan-400 font-bold">${item.sets.map(s => `${s.weight}kg×${s.reps}`).join(', ')}</span>
+          </div>
+        `).join('');
+
+        return `
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+            <div class="flex justify-between items-center">
+              <div>
+                <h4 class="text-xs font-bold text-white">${w.title}</h4>
+                <p class="text-[9px] text-slate-400">${w.date}</p>
+              </div>
+              <button onclick="deleteWorkout('${w.id}')" class="text-slate-500 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+            <div class="space-y-1 bg-slate-950/60 p-2 rounded-lg">
+              ${details}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderExerciseChart() {
+      const selectedEx = document.getElementById('select-chart-exercise').value;
+      if (!selectedEx) return;
+
+      const historyData = [];
+      const labels = [];
+
+      // Extract max weight per session for selected exercise
+      const sortedWk = [...appState.workouts].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+      sortedWk.forEach(w => {
+        (w.items || []).forEach(item => {
+          if (item.exerciseName === selectedEx && item.sets && item.sets.length > 0) {
+            const maxWeight = Math.max(...item.sets.map(s => parseFloat(s.weight) || 0));
+            labels.push(w.date);
+            historyData.push(maxWeight);
+          }
+        });
+      });
+
+      const ctxProg = document.getElementById('chart-exercise-progression').getContext('2d');
+      if (chartExerciseProgression) chartExerciseProgression.destroy();
+
+      if (historyData.length === 0) {
+        chartExerciseProgression = new Chart(ctxProg, {
+          type: 'line',
+          data: {
+            labels: ['Sin datos'],
+            datasets: [{ data: [0], borderColor: '#6366f1' }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+      } else {
+        chartExerciseProgression = new Chart(ctxProg, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: `Peso Máx (${selectedEx})`,
+              data: historyData,
+              borderColor: '#06b6d4',
+              backgroundColor: 'rgba(6, 182, 212, 0.15)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#6366f1'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } },
+              y: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+          }
+        });
+      }
+    }
+
+    function openExerciseModal() {
+      document.getElementById('form-exercise').reset();
+      openModal('modal-exercise');
+    }
+
+    function handleSaveExercise(e) {
+      e.preventDefault();
+      const name = document.getElementById('ex-name').value.trim();
+      const category = document.getElementById('ex-category').value;
+
+      if (!name) return;
+
+      appState.exercises.push({ id: 'ex_' + Date.now(), name, category });
+      saveDB();
+      closeModal('modal-exercise');
+      renderEjercicio();
+      showToast('Ejercicio creado', 'success');
+    }
+
+    function deleteExercise(id) {
+      appState.exercises = appState.exercises.filter(ex => ex.id !== id);
+      saveDB();
+      renderEjercicio();
+      showToast('Ejercicio eliminado', 'info');
+    }
+
+    function openWorkoutModal() {
+      document.getElementById('form-workout').reset();
+      setupDates();
+      document.getElementById('workout-exercise-rows').innerHTML = '';
+      addWorkoutExerciseRow();
+      openModal('modal-workout');
+    }
+
+    function addWorkoutExerciseRow() {
+      const container = document.getElementById('workout-exercise-rows');
+      const row = document.createElement('div');
+      row.className = 'bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-2';
+
+      const exerciseOptions = appState.exercises.map(ex => `<option value="${ex.name}">${ex.name}</option>`).join('');
+
+      row.innerHTML = `
+        <div class="flex justify-between items-center">
+          <select class="wk-ex-select bg-slate-900 border border-slate-700 text-xs text-cyan-400 font-bold rounded-lg px-2 py-1 w-3/4 focus:outline-none">
+            ${exerciseOptions}
+          </select>
+          <button type="button" onclick="this.parentElement.parentElement.remove()" class="text-rose-400 text-xs p-1"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+        <div class="sets-builder space-y-1">
+          <div class="set-item grid grid-cols-2 gap-2">
+            <input type="number" step="0.5" placeholder="Peso (kg/lb)" required class="set-w bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
+            <input type="number" placeholder="Repeticiones" required class="set-r bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
+          </div>
+        </div>
+        <button type="button" onclick="addSetToExercise(this)" class="text-[10px] text-cyan-400 font-bold hover:underline block">+ Agregar Serie</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function addSetToExercise(btn) {
+      const setsBox = btn.previousElementSibling;
+      const setItem = document.createElement('div');
+      setItem.className = 'set-item grid grid-cols-2 gap-2';
+      setItem.innerHTML = `
+        <input type="number" step="0.5" placeholder="Peso (kg/lb)" required class="set-w bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
+        <input type="number" placeholder="Repeticiones" required class="set-r bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
+      `;
+      setsBox.appendChild(setItem);
+    }
+
+    function handleSaveWorkout(e) {
+      e.preventDefault();
+      const title = document.getElementById('wk-title').value.trim();
+      const date = document.getElementById('wk-date').value;
+
+      const rows = document.querySelectorAll('#workout-exercise-rows > div');
+      const items = [];
+
+      rows.forEach(r => {
+        const exerciseName = r.querySelector('.wk-ex-select').value;
+        const setInputs = r.querySelectorAll('.set-item');
+        const sets = [];
+        setInputs.forEach(s => {
+          const w = parseFloat(s.querySelector('.set-w').value) || 0;
+          const reps = parseInt(s.querySelector('.set-r').value) || 0;
+          sets.push({ weight: w, reps });
+        });
+        if (sets.length > 0) items.push({ exerciseName, sets });
+      });
+
+      if (items.length === 0) return;
+
+      appState.workouts.push({ id: 'wk_' + Date.now(), title, date, items });
+      saveDB();
+      closeModal('modal-workout');
+      renderEjercicio();
+      showToast('Entrenamiento guardado', 'success');
+    }
+
+    function deleteWorkout(id) {
+      appState.workouts = appState.workouts.filter(w => w.id !== id);
+      saveDB();
+      renderEjercicio();
+      showToast('Rutina eliminada', 'info');
+    }
+
+    /* Rest Timer Engine */
+    function setTimerPreset(sec) {
+      resetTimer();
+      timerSeconds = sec;
+      timerTotal = sec;
+      updateTimerUI();
+    }
+
+    function toggleTimer() {
+      if (timerRunning) pauseTimer();
+      else startTimer();
+    }
+
+    function startTimer() {
+      if (timerSeconds <= 0) timerSeconds = timerTotal;
+      timerRunning = true;
+      document.getElementById('timer-btn-text').textContent = 'Pausar';
+      document.getElementById('timer-icon').className = 'fa-solid fa-pause';
+      document.getElementById('timer-status').textContent = 'En curso';
+      document.getElementById('timer-status').className = 'text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/30 font-bold';
+      document.getElementById('timer-card-wrapper').classList.add('timer-glow');
+
+      timerInterval = setInterval(() => {
+        timerSeconds--;
+        updateTimerUI();
+        if (timerSeconds <= 0) {
+          pauseTimer();
+          playBeep();
+          showToast('¡Tiempo de descanso terminado!', 'info');
+          document.getElementById('timer-status').textContent = '¡Listo!';
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      document.getElementById('timer-btn-text').textContent = 'Iniciar';
+      document.getElementById('timer-icon').className = 'fa-solid fa-play';
+      document.getElementById('timer-card-wrapper').classList.remove('timer-glow');
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      timerSeconds = timerTotal;
+      updateTimerUI();
+      document.getElementById('timer-status').textContent = 'Listo';
+      document.getElementById('timer-status').className = 'text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700';
+    }
+
+    function updateTimerUI() {
+      const m = Math.floor(timerSeconds / 60);
+      const s = timerSeconds % 60;
+      document.getElementById('timer-display').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    function playBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 800;
+        gain.gain.value = 0.15;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
+
+
+    /* ==========================================
+       SECTION 4: EXPORTACIÓN PARA IA
+       ========================================== */
+    function generateAIReport() {
+      let income = 0;
+      let expense = 0;
+      const catTotals = {};
+
+      appState.transactions.forEach(t => {
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === 'ingreso') income += amt;
+        else {
+          expense += amt;
+          catTotals[t.category] = (catTotals[t.category] || 0) + amt;
+        }
+      });
+
+      // Deudas Familiares
+      let famDebtsText = "Sin deudas familiares registradas.";
+      if (appState.familyDebts && appState.familyDebts.length > 0) {
+        famDebtsText = appState.familyDebts.map(fd => {
+          const calc = calculateFamilyDebt(fd);
+          return `- Familiar: ${fd.name} | Principal: $${calc.principal} | Tasa: ${fd.rate}% ${fd.ratePeriod} (${fd.interestType}) | Interés Acumulado: $${calc.interestAccrued.toFixed(2)} | Abonos Totales: $${calc.totalAbonos.toFixed(2)} | DEUDA ACTUAL TOTAL: $${calc.currentTotal.toFixed(2)} | Proyección a 6 Meses: $${calc.proj6M.toFixed(2)}`;
+        }).join('\n');
+      }
+
+      // Tarjetas Personales
+      let cardDebtsText = appState.debts.length === 0 ? "Sin deudas de tarjetas registradas." :
+        appState.debts.map(d => `- ${d.name}: Balance $${d.balance} | Pago Mínimo $${d.minPay} | Fecha Pago: ${d.dueDate}`).join('\n');
+
+      // Ahorros
+      let savingsText = appState.savings.length === 0 ? "Sin fondos de ahorro registrados." :
+        appState.savings.map(s => `- ${s.name}: Saldo Ahorrado $${s.balance} (Meta: $${s.goal})`).join('\n');
+
+      let catText = Object.keys(catTotals).map(c => `- ${c}: $${catTotals[c].toFixed(2)}`).join('\n');
+
+      // Workout Summary
+      const workoutCount = appState.workouts.length;
+
+      const now = new Date();
+      const reportDate = now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+      const textPrompt = `--- INFORME INTEGRAL MENSUAL VITAFLOW (${reportDate.toUpperCase()}) ---
+
+1. RESUMEN DE FLUJO DE CAJA:
+- Ingresos Totales: $${income.toFixed(2)}
+- Gastos Totales: $${expense.toFixed(2)}
+- Balance Neto Disponible: $${(income - expense).toFixed(2)}
+
+2. DESGLOSE DE GASTOS POR CATEGORÍA:
+${catText || 'Sin gastos registrados este mes.'}
+
+3. DEUDAS FAMILIARES Y CRECIMIENTO CON INTERESES:
+${famDebtsText}
+
+4. TARJETAS DE CRÉDITO PERSONALES:
+${cardDebtsText}
+
+5. FONDOS DE AHORRO Y ACUMULADO:
+${savingsText}
+
+6. ACTIVIDAD FÍSICA:
+- Sesiones de Entrenamiento registradas: ${workoutCount}
+
+--------------------------------------------------
+PROMPT DE INSTRUCCIÓN PARA LA IA:
+"Hola IA, te comparto el estado detallado de mis finanzas y deudas familiares de este mes.
+Por favor analiza la información y responde con:
+1. Una estrategia priorizada para afrontar las Deudas Familiares que acumulan intereses (indicando si conviene bola de nieve o avalancha).
+2. Recomendación para no descuidar mi saldo personal mientras ayudo a mi familia.
+3. Evaluación del flujo de gastos e ingresos con un plan de 3 pasos concretos para optimizar ahorros."`;
+
+      document.getElementById('ai-report-textarea').value = textPrompt;
+      document.getElementById('ai-report-output-box').classList.remove('hidden');
+      showToast('Informe ampliado para IA generado', 'success');
+    }
+
+    function copyAIReportToClipboard() {
+      const textarea = document.getElementById('ai-report-textarea');
+      textarea.select();
+      document.execCommand('copy');
+      showToast('Informe copiado al portapapeles', 'info');
+    }
+
+    function downloadAIReportFile() {
+      const text = document.getElementById('ai-report-textarea').value;
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `VitaFlow_Reporte_IA_${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+      showToast('Archivo .txt descargado', 'success');
+    }
+
+    function exportJSONBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `VitaFlow_Backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Copia JSON descargada', 'success');
+    }
+
+    function importJSONBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.transactions || parsed.exercises || parsed.familyDebts) {
+            appState = parsed;
+            saveDB();
+            renderAll();
+            showToast('Base de datos importada con éxito', 'success');
+          } else {
+            showToast('Formato JSON no compatible', 'error');
+          }
+        } catch(err) {
+          showToast('Error al importar el archivo JSON', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function confirmResetAll() {
+      if (window.confirm("¿Seguro que deseas reiniciar todos los datos?")) {
+        localStorage.removeItem(DB_KEY);
+        appState = { transactions: [], debts: [], familyDebts: [], savings: [], exercises: [], workouts: [] };
+        loadDB();
+        renderAll();
+        showToast('Datos reseteados por completo', 'info');
+      }
+    }
+
+
+    /* ==========================================
+       UTILITIES & UI MODALS
+       ========================================== */
+    function renderAll() {
+      renderFinanzas();
+      renderDeudasAhorros();
+      renderEjercicio();
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const typeStyle = type === 'success' ? 'bg-emerald-500 text-slate-950' :
+                        type === 'error' ? 'bg-rose-500 text-white' :
+                        'bg-cyan-500 text-slate-950';
+
+      toast.className = `p-3 rounded-xl font-bold text-xs shadow-2xl flex items-center justify-between transition-all duration-300 transform translate-y-[-10px] opacity-0 ${typeStyle}`;
+      toast.innerHTML = `<span>${msg}</span><i class="fa-solid fa-xmark ml-2 cursor-pointer" onclick="this.parentElement.remove()"></i>`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => toast.classList.remove('translate-y-[-10px]', 'opacity-0'), 10);
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
